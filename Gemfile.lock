@@ -162,6 +162,7 @@ GEM
       bigdecimal
     simpleidn (0.2.3)
     sqlite3 (1.7.3-arm64-darwin)
+    sqlite3 (1.7.3-x86_64-linux)
     timeout (0.4.4)
     traces (0.18.2)
     tzinfo (2.0.6)
@@ -174,6 +175,7 @@ GEM
 
 PLATFORMS
   arm64-darwin-24
+  x86_64-linux
 
 DEPENDENCIES
   activerecord (~> 7.0)
