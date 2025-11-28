@@ -1,18 +1,18 @@
 # frozen_string_literal: true
 
-require "timeout"
+require 'timeout'
 
 module DurableWorkflow
   module Core
     class Engine
-      FINISHED = "__FINISHED__"
+      FINISHED = '__FINISHED__'
 
       attr_reader :workflow, :store
 
       def initialize(workflow, store: nil)
         @workflow = workflow
         @store = store || DurableWorkflow.config&.store
-        raise ConfigError, "No store configured. Use Redis, ActiveRecord, or Sequel." unless @store
+        raise ConfigError, 'No store configured. Use Redis, ActiveRecord, or Sequel.' unless @store
       end
 
       def run(input: {}, execution_id: nil)
@@ -56,90 +56,90 @@ module DurableWorkflow
 
       private
 
-        def execute_from(state, step_id)
-          while step_id && step_id != FINISHED
-            state = state.with_current_step(step_id)
+      def execute_from(state, step_id)
+        while step_id && step_id != FINISHED
+          state = state.with_current_step(step_id)
 
-            # Save intermediate state as :running
-            save_execution(state, ExecutionResult.new(status: :running, execution_id: state.execution_id))
+          # Save intermediate state as :running
+          save_execution(state, ExecutionResult.new(status: :running, execution_id: state.execution_id))
 
-            step = workflow.find_step(step_id)
-            raise ExecutionError, "Step not found: #{step_id}" unless step
+          step = workflow.find_step(step_id)
+          raise ExecutionError, "Step not found: #{step_id}" unless step
 
-            outcome = execute_step(state, step)
-            state = outcome.state
+          outcome = execute_step(state, step)
+          state = outcome.state
 
-            case outcome.result
-            when HaltResult
-              return handle_halt(state, outcome.result)
-            when ContinueResult
-              step_id = outcome.result.next_step
-            else
-              raise ExecutionError, "Unknown result: #{outcome.result.class}"
-            end
+          case outcome.result
+          when HaltResult
+            return handle_halt(state, outcome.result)
+          when ContinueResult
+            step_id = outcome.result.next_step
+          else
+            raise ExecutionError, "Unknown result: #{outcome.result.class}"
           end
-
-          # Completed
-          result = ExecutionResult.new(status: :completed, execution_id: state.execution_id, output: state.ctx[:result])
-          save_execution(state, result)
-          result
         end
 
-        def execute_step(state, step)
-          executor_class = Executors::Registry[step.type]
-          raise ExecutionError, "No executor for: #{step.type}" unless executor_class
+        # Completed
+        result = ExecutionResult.new(status: :completed, execution_id: state.execution_id, output: state.ctx[:result])
+        save_execution(state, result)
+        result
+      end
 
-          start = Time.now
-          outcome = executor_class.new(step).call(state)
-          duration = ((Time.now - start) * 1000).to_i
+      def execute_step(state, step)
+        executor_class = Executors::Registry[step.type]
+        raise ExecutionError, "No executor for: #{step.type}" unless executor_class
 
-          @store.record(Entry.new(
-            id: SecureRandom.uuid,
-            execution_id: state.execution_id,
-            step_id: step.id,
-            step_type: step.type,
-            action: outcome.result.is_a?(HaltResult) ? :halted : :completed,
-            duration_ms: duration,
-            output: outcome.result.output,
-            timestamp: Time.now
-          ))
+        start = Time.now
+        outcome = executor_class.new(step).call(state)
+        duration = ((Time.now - start) * 1000).to_i
 
-          outcome
-        rescue => e
-          @store.record(Entry.new(
-            id: SecureRandom.uuid,
-            execution_id: state.execution_id,
-            step_id: step.id,
-            step_type: step.type,
-            action: :failed,
-            error: "#{e.class}: #{e.message}",
-            timestamp: Time.now
-          ))
+        @store.record(Entry.new(
+                        id: SecureRandom.uuid,
+                        execution_id: state.execution_id,
+                        step_id: step.id,
+                        step_type: step.type,
+                        action: outcome.result.is_a?(HaltResult) ? :halted : :completed,
+                        duration_ms: duration,
+                        output: outcome.result.output,
+                        timestamp: Time.now
+                      ))
 
-          if step.on_error
-            # Store error info in ctx for access by error handler step
-            error_state = state.with_ctx(_last_error: { step: step.id, message: e.message, class: e.class.name })
-            return StepOutcome.new(state: error_state, result: ContinueResult.new(next_step: step.on_error))
-          end
+        outcome
+      rescue StandardError => e
+        @store.record(Entry.new(
+                        id: SecureRandom.uuid,
+                        execution_id: state.execution_id,
+                        step_id: step.id,
+                        step_type: step.type,
+                        action: :failed,
+                        error: "#{e.class}: #{e.message}",
+                        timestamp: Time.now
+                      ))
 
-          raise
+        if step.on_error
+          # Store error info in ctx for access by error handler step
+          error_state = state.with_ctx(_last_error: { step: step.id, message: e.message, class: e.class.name })
+          return StepOutcome.new(state: error_state, result: ContinueResult.new(next_step: step.on_error))
         end
 
-        def handle_halt(state, halt_result)
-          result = ExecutionResult.new(
-            status: :halted,
-            execution_id: state.execution_id,
-            output: state.ctx[:result],
-            halt: halt_result
-          )
-          save_execution(state, result)
-          result
-        end
+        raise
+      end
 
-        def save_execution(state, result)
-          execution = Execution.from_state(state, result)
-          @store.save(execution)
-        end
+      def handle_halt(state, halt_result)
+        result = ExecutionResult.new(
+          status: :halted,
+          execution_id: state.execution_id,
+          output: state.ctx[:result],
+          halt: halt_result
+        )
+        save_execution(state, result)
+        result
+      end
+
+      def save_execution(state, result)
+        execution = Execution.from_state(state, result)
+        @store.save(execution)
+      end
     end
   end
 end

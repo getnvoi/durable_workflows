@@ -9,7 +9,7 @@ module DurableWorkflow
 
       # Message role enum (AI-specific, not in core)
       module Types
-        MessageRole = DurableWorkflow::Types::Strict::String.enum("system", "user", "assistant", "tool")
+        MessageRole = DurableWorkflow::Types::Strict::String.enum('system', 'user', 'assistant', 'tool')
       end
 
       # Handoff definition
@@ -31,7 +31,7 @@ module DurableWorkflow
       # Tool parameter
       class ToolParam < BaseStruct
         attribute :name, DurableWorkflow::Types::Strict::String
-        attribute? :type, DurableWorkflow::Types::Strict::String.optional.default("string")
+        attribute? :type, DurableWorkflow::Types::Strict::String.optional.default('string')
         attribute? :required, DurableWorkflow::Types::Strict::Bool.default(true)
         attribute? :description, DurableWorkflow::Types::Strict::String.optional
       end
@@ -49,7 +49,7 @@ module DurableWorkflow
             name: id,
             description:,
             parameters: {
-              type: "object",
+              type: 'object',
               properties: parameters.each_with_object({}) do |p, h|
                 h[p.name] = { type: p.type, description: p.description }.compact
               end,
@@ -61,8 +61,8 @@ module DurableWorkflow
         # Convert to RubyLLM::Tool class
         def to_ruby_llm_tool
           tool_def = self
-          class_name = id.split("_").map(&:capitalize).join
-          short_name = id  # Use the tool id as the name (e.g., "classify_request")
+          class_name = id.split('_').map(&:capitalize).join
+          short_name = id # Use the tool id as the name (e.g., "classify_request")
 
           # Create named class under GeneratedTools module
           AI::GeneratedTools.const_set(class_name, Class.new(RubyLLM::Tool) do
@@ -112,25 +112,25 @@ module DurableWorkflow
         attribute? :name, DurableWorkflow::Types::Strict::String.optional
 
         def self.system(content)
-          new(role: "system", content:)
+          new(role: 'system', content:)
         end
 
         def self.user(content)
-          new(role: "user", content:)
+          new(role: 'user', content:)
         end
 
         def self.assistant(content, tool_calls: nil)
-          new(role: "assistant", content:, tool_calls:)
+          new(role: 'assistant', content:, tool_calls:)
         end
 
         def self.tool(content, tool_call_id:, name: nil)
-          new(role: "tool", content:, tool_call_id:, name:)
+          new(role: 'tool', content:, tool_call_id:, name:)
         end
 
-        def system? = role == "system"
-        def user? = role == "user"
-        def assistant? = role == "assistant"
-        def tool? = role == "tool"
+        def system? = role == 'system'
+        def user? = role == 'user'
+        def assistant? = role == 'assistant'
+        def tool? = role == 'tool'
         def tool_calls? = tool_calls&.any?
       end
 

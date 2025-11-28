@@ -28,41 +28,41 @@ module DurableWorkflow
 
         private
 
-          def default_job_class
-            # Define a default job class if sidekiq is available
-            return @default_job_class if defined?(@default_job_class)
+        def default_job_class
+          # Define a default job class if sidekiq is available
+          return @default_job_class if defined?(@default_job_class)
 
-            @default_job_class = Class.new do
-              if defined?(::Sidekiq::Job)
-                include ::Sidekiq::Job
+          @default_job_class = Class.new do
+            if defined?(::Sidekiq::Job)
+              include ::Sidekiq::Job
 
-                def perform(args)
-                  args = DurableWorkflow::Utils.deep_symbolize(args)
+              def perform(args)
+                args = DurableWorkflow::Utils.deep_symbolize(args)
 
-                  workflow = DurableWorkflow.registry[args[:workflow_id]]
-                  raise DurableWorkflow::ExecutionError, "Workflow not found: #{args[:workflow_id]}" unless workflow
+                workflow = DurableWorkflow.registry[args[:workflow_id]]
+                raise DurableWorkflow::ExecutionError, "Workflow not found: #{args[:workflow_id]}" unless workflow
 
-                  store = DurableWorkflow.config&.store
-                  raise DurableWorkflow::ConfigError, "No store configured" unless store
+                store = DurableWorkflow.config&.store
+                raise DurableWorkflow::ConfigError, 'No store configured' unless store
 
-                  engine = DurableWorkflow::Core::Engine.new(workflow, store:)
+                engine = DurableWorkflow::Core::Engine.new(workflow, store:)
 
-                  # Engine saves Execution with proper typed status - no manual status update needed
-                  case args[:action].to_sym
-                  when :start
-                    engine.run(input: args[:input], execution_id: args[:execution_id])
-                  when :resume
-                    engine.resume(args[:execution_id], response: args[:response], approved: args[:approved])
-                  end
+                # Engine saves Execution with proper typed status - no manual status update needed
+                case args[:action].to_sym
+                when :start
+                  engine.run(input: args[:input], execution_id: args[:execution_id])
+                when :resume
+                  engine.resume(args[:execution_id], response: args[:response], approved: args[:approved])
                 end
               end
             end
-
-            # Register in Object so it can be found by Sidekiq
-            Object.const_set(:DurableWorkflowJob, @default_job_class) unless defined?(::DurableWorkflowJob)
-
-            @default_job_class
           end
+
+          # Register in Object so it can be found by Sidekiq
+          Object.const_set(:DurableWorkflowJob, @default_job_class) unless defined?(::DurableWorkflowJob)
+
+          @default_job_class
+        end
       end
     end
   end

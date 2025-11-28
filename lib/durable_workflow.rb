@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require "securerandom"
-require "time"
-require_relative "durable_workflow/version"
+require 'securerandom'
+require 'time'
+require_relative 'durable_workflow/version'
 
 module DurableWorkflow
   class Error < StandardError; end
@@ -42,29 +42,29 @@ module DurableWorkflow
 end
 
 # Core (always loaded)
-require_relative "durable_workflow/utils"
-require_relative "durable_workflow/core/types"
-require_relative "durable_workflow/core/parser"
-require_relative "durable_workflow/core/validator"
-require_relative "durable_workflow/core/resolver"
-require_relative "durable_workflow/core/condition"
-require_relative "durable_workflow/core/schema_validator"
-require_relative "durable_workflow/core/executors/registry"
-require_relative "durable_workflow/core/executors/base"
+require_relative 'durable_workflow/utils'
+require_relative 'durable_workflow/core/types'
+require_relative 'durable_workflow/core/parser'
+require_relative 'durable_workflow/core/validator'
+require_relative 'durable_workflow/core/resolver'
+require_relative 'durable_workflow/core/condition'
+require_relative 'durable_workflow/core/schema_validator'
+require_relative 'durable_workflow/core/executors/registry'
+require_relative 'durable_workflow/core/executors/base'
 
 # Load all core executors
-Dir[File.join(__dir__, "durable_workflow/core/executors/*.rb")].each { |f| require f }
+Dir[File.join(__dir__, 'durable_workflow/core/executors/*.rb')].each { |f| require f }
 
-require_relative "durable_workflow/core/engine"
+require_relative 'durable_workflow/core/engine'
 
 # Storage (no default - must be configured)
-require_relative "durable_workflow/storage/store"
+require_relative 'durable_workflow/storage/store'
 
 # Runners
-require_relative "durable_workflow/runners/sync"
-require_relative "durable_workflow/runners/async"
-require_relative "durable_workflow/runners/stream"
-require_relative "durable_workflow/runners/adapters/inline"
+require_relative 'durable_workflow/runners/sync'
+require_relative 'durable_workflow/runners/async'
+require_relative 'durable_workflow/runners/stream'
+require_relative 'durable_workflow/runners/adapters/inline'
 
 # Extensions (base only - specific extensions loaded separately)
-require_relative "durable_workflow/extensions/base"
+require_relative 'durable_workflow/extensions/base'

@@ -60,13 +60,13 @@ module DurableWorkflow
             def build_stdio_transport(config)
               # Stdio transport for command-line MCP servers
               # This would require implementing or using a stdio transport
-              raise NotImplementedError, "Stdio transport not yet implemented"
+              raise NotImplementedError, 'Stdio transport not yet implemented'
             end
 
             # Replace ${ENV_VAR} with actual values
             def interpolate_env(headers)
               headers.transform_values do |v|
-                v.to_s.gsub(/\$\{(\w+)\}/) { ENV.fetch(::Regexp.last_match(1), "") }
+                v.to_s.gsub(/\$\{(\w+)\}/) { ENV.fetch(::Regexp.last_match(1), '') }
               end
             end
           end

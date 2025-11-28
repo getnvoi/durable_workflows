@@ -37,7 +37,7 @@ module DurableWorkflow
 
     # Helper to build a step
     def build_step(id:, type:, config: {}, next_step: nil, on_error: nil)
-      config_class = Core::CONFIG_REGISTRY[type]
+      config_class = Core.config_registry[type]
       typed_config = config_class ? config_class.new(config) : config
 
       Core::StepDef.new(

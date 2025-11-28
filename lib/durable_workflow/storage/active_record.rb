@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "json"
+require 'json'
 
 module DurableWorkflow
   module Storage
@@ -126,21 +126,23 @@ module DurableWorkflow
 
       private
 
-        def parse_json(str)
-          return nil if str.nil? || str.empty?
-          result = JSON.parse(str)
-          result.is_a?(Hash) ? DurableWorkflow::Utils.deep_symbolize(result) : result
-        rescue JSON::ParserError
-          nil
-        end
+      def parse_json(str)
+        return nil if str.nil? || str.empty?
 
-        def parse_json_any(str)
-          return nil if str.nil? || str.empty?
-          result = JSON.parse(str)
-          result.is_a?(Hash) ? DurableWorkflow::Utils.deep_symbolize(result) : result
-        rescue JSON::ParserError
-          nil
-        end
+        result = JSON.parse(str)
+        result.is_a?(Hash) ? DurableWorkflow::Utils.deep_symbolize(result) : result
+      rescue JSON::ParserError
+        nil
+      end
+
+      def parse_json_any(str)
+        return nil if str.nil? || str.empty?
+
+        result = JSON.parse(str)
+        result.is_a?(Hash) ? DurableWorkflow::Utils.deep_symbolize(result) : result
+      rescue JSON::ParserError
+        nil
+      end
     end
   end
 end

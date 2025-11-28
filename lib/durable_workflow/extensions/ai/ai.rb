@@ -1,44 +1,44 @@
 # frozen_string_literal: true
 
-require "ruby_llm"
-require "mcp"
+require 'ruby_llm'
+require 'mcp'
 
-require_relative "types"
-require_relative "configuration"
-require_relative "tool_registry"
+require_relative 'types'
+require_relative 'configuration'
+require_relative 'tool_registry'
 
 # MCP components
-require_relative "mcp/client"
-require_relative "mcp/adapter"
-require_relative "mcp/server"
-require_relative "mcp/rack_app"
+require_relative 'mcp/client'
+require_relative 'mcp/adapter'
+require_relative 'mcp/server'
+require_relative 'mcp/rack_app'
 
-require_relative "executors/agent"
-require_relative "executors/guardrail"
-require_relative "executors/handoff"
-require_relative "executors/file_search"
-require_relative "executors/mcp"
+require_relative 'executors/agent'
+require_relative 'executors/guardrail'
+require_relative 'executors/handoff'
+require_relative 'executors/file_search'
+require_relative 'executors/mcp'
 
 module DurableWorkflow
   module Extensions
     module AI
       class Extension < Base
-        self.extension_name = "ai"
+        self.extension_name = 'ai'
 
         def self.register_configs
-          Core.register_config("agent", AgentConfig)
-          Core.register_config("guardrail", GuardrailConfig)
-          Core.register_config("handoff", HandoffConfig)
-          Core.register_config("file_search", FileSearchConfig)
-          Core.register_config("mcp", MCPConfig)
+          Core.register_config('agent', AgentConfig)
+          Core.register_config('guardrail', GuardrailConfig)
+          Core.register_config('handoff', HandoffConfig)
+          Core.register_config('file_search', FileSearchConfig)
+          Core.register_config('mcp', MCPConfig)
         end
 
         def self.register_executors
-          Core::Executors::Registry.register("agent", Executors::Agent)
-          Core::Executors::Registry.register("guardrail", Executors::Guardrail)
-          Core::Executors::Registry.register("handoff", Executors::Handoff)
-          Core::Executors::Registry.register("file_search", Executors::FileSearch)
-          Core::Executors::Registry.register("mcp", Executors::MCP)
+          Core::Executors::Registry.register('agent', Executors::Agent)
+          Core::Executors::Registry.register('guardrail', Executors::Guardrail)
+          Core::Executors::Registry.register('handoff', Executors::Handoff)
+          Core::Executors::Registry.register('file_search', Executors::FileSearch)
+          Core::Executors::Registry.register('mcp', Executors::MCP)
         end
 
         def self.register_parser_hooks

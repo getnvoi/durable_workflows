@@ -8,12 +8,10 @@ module DurableWorkflow
       class << self
         # Extension name (used as key in workflow.extensions)
         def extension_name
-          @extension_name ||= (name ? name.split("::").last.downcase : "anonymous")
+          @extension_name ||= (name ? name.split('::').last.downcase : 'anonymous')
         end
 
-        def extension_name=(name)
-          @extension_name = name
-        end
+        attr_writer :extension_name
 
         # Register all components of the extension
         def register!

@@ -3,10 +3,10 @@
 module DurableWorkflow
   module Core
     # Operator type with default
-    OperatorType = Types::Strict::String.default("eq").enum(
-      "eq", "neq", "gt", "gte", "lt", "lte",
-      "contains", "starts_with", "ends_with", "matches",
-      "in", "not_in", "exists", "empty", "truthy", "falsy"
+    OperatorType = Types::Strict::String.default('eq').enum(
+      'eq', 'neq', 'gt', 'gte', 'lt', 'lte',
+      'contains', 'starts_with', 'ends_with', 'matches',
+      'in', 'not_in', 'exists', 'empty', 'truthy', 'falsy'
     )
 
     class Condition < BaseStruct

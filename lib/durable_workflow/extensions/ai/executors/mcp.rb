@@ -21,24 +21,25 @@ module DurableWorkflow
 
           private
 
-            def resolve_server(state, server_id)
-              servers = Extension.mcp_servers(workflow(state))
-              server_config = Utils.fetch(servers, server_id)
-              raise ExecutionError, "MCP server not found: #{server_id}" unless server_config
-              server_config
-            end
+          def resolve_server(state, server_id)
+            servers = Extension.mcp_servers(workflow(state))
+            server_config = Utils.fetch(servers, server_id)
+            raise ExecutionError, "MCP server not found: #{server_id}" unless server_config
 
-            def workflow(state)
-              DurableWorkflow.registry[state.workflow_id]
-            end
+            server_config
+          end
 
-            def extract_output(result)
-              if result.respond_to?(:content)
-                result.content.map { |c| Utils.fetch(c, :text) }.compact.join("\n")
-              else
-                result.to_s
-              end
+          def workflow(state)
+            DurableWorkflow.registry[state.workflow_id]
+          end
+
+          def extract_output(result)
+            if result.respond_to?(:content)
+              result.content.map { |c| Utils.fetch(c, :text) }.compact.join("\n")
+            else
+              result.to_s
             end
+          end
         end
       end
     end

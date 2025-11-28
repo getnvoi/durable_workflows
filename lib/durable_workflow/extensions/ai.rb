@@ -3,4 +3,4 @@
 # AI Extension loader
 # Usage: require "durable_workflow/extensions/ai"
 
-require_relative "ai/ai"
+require_relative 'ai/ai'

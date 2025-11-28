@@ -1,14 +1,14 @@
 # frozen_string_literal: true
 
-require "json"
-require "redis"
+require 'json'
+require 'redis'
 
 module DurableWorkflow
   module Storage
     class Redis < Store
-      PREFIX = "durable_workflow"
+      PREFIX = 'durable_workflow'
 
-      def initialize(redis: nil, url: nil, ttl: 86400 * 7)
+      def initialize(redis: nil, url: nil, ttl: 86_400 * 7)
         @redis = redis || ::Redis.new(url:)
         @ttl = ttl
       end
@@ -41,10 +41,10 @@ module DurableWorkflow
 
       def find(workflow_id: nil, status: nil, limit: 100)
         ids = if workflow_id
-          @redis.smembers(index_key(workflow_id)).first(limit)
-        else
-          scan_execution_ids(limit)
-        end
+                @redis.smembers(index_key(workflow_id)).first(limit)
+              else
+                scan_execution_ids(limit)
+              end
 
         results = ids.filter_map { load(_1) }
         results = results.select { _1.status == status } if status
@@ -71,63 +71,63 @@ module DurableWorkflow
 
       private
 
-        def exec_key(id)
-          "#{PREFIX}:exec:#{id}"
+      def exec_key(id)
+        "#{PREFIX}:exec:#{id}"
+      end
+
+      def entries_key(id)
+        "#{PREFIX}:entries:#{id}"
+      end
+
+      def index_key(wf_id)
+        "#{PREFIX}:idx:#{wf_id}"
+      end
+
+      def index_add(execution)
+        @redis.sadd(index_key(execution.workflow_id), execution.id)
+      end
+
+      def index_remove(execution)
+        @redis.srem(index_key(execution.workflow_id), execution.id)
+      end
+
+      def scan_execution_ids(limit)
+        ids = []
+        cursor = '0'
+        pattern = "#{PREFIX}:exec:*"
+
+        loop do
+          cursor, keys = @redis.scan(cursor, match: pattern, count: 100)
+          ids.concat(keys.map { _1.split(':').last })
+          break if cursor == '0' || ids.size >= limit
         end
 
-        def entries_key(id)
-          "#{PREFIX}:entries:#{id}"
+        ids.first(limit)
+      end
+
+      def serialize_execution(execution)
+        JSON.generate(execution.to_h)
+      end
+
+      def deserialize_execution(json)
+        Core::Execution.from_h(symbolize(JSON.parse(json)))
+      end
+
+      def serialize_entry(entry)
+        JSON.generate(entry.to_h)
+      end
+
+      def deserialize_entry(json)
+        Core::Entry.from_h(symbolize(JSON.parse(json)))
+      end
+
+      def symbolize(obj)
+        case obj
+        when Hash then obj.transform_keys(&:to_sym).transform_values { symbolize(_1) }
+        when Array then obj.map { symbolize(_1) }
+        else obj
         end
-
-        def index_key(wf_id)
-          "#{PREFIX}:idx:#{wf_id}"
-        end
-
-        def index_add(execution)
-          @redis.sadd(index_key(execution.workflow_id), execution.id)
-        end
-
-        def index_remove(execution)
-          @redis.srem(index_key(execution.workflow_id), execution.id)
-        end
-
-        def scan_execution_ids(limit)
-          ids = []
-          cursor = "0"
-          pattern = "#{PREFIX}:exec:*"
-
-          loop do
-            cursor, keys = @redis.scan(cursor, match: pattern, count: 100)
-            ids.concat(keys.map { _1.split(":").last })
-            break if cursor == "0" || ids.size >= limit
-          end
-
-          ids.first(limit)
-        end
-
-        def serialize_execution(execution)
-          JSON.generate(execution.to_h)
-        end
-
-        def deserialize_execution(json)
-          Core::Execution.from_h(symbolize(JSON.parse(json)))
-        end
-
-        def serialize_entry(entry)
-          JSON.generate(entry.to_h)
-        end
-
-        def deserialize_entry(json)
-          Core::Entry.from_h(symbolize(JSON.parse(json)))
-        end
-
-        def symbolize(obj)
-          case obj
-          when Hash then obj.transform_keys(&:to_sym).transform_values { symbolize(_1) }
-          when Array then obj.map { symbolize(_1) }
-          else obj
-          end
-        end
+      end
     end
   end
 end

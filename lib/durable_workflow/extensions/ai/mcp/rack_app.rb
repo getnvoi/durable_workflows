@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require "json"
-require "rack"
+require 'json'
+require 'rack'
 
 module DurableWorkflow
   module Extensions
@@ -16,14 +16,14 @@ module DurableWorkflow
             request = Rack::Request.new(env)
 
             case request.request_method
-            when "POST"
+            when 'POST'
               handle_post(request)
-            when "GET"
+            when 'GET'
               handle_sse(request)
-            when "DELETE"
+            when 'DELETE'
               handle_delete(request)
             else
-              [405, { "Content-Type" => "text/plain" }, ["Method not allowed"]]
+              [405, { 'Content-Type' => 'text/plain' }, ['Method not allowed']]
             end
           end
 
@@ -33,30 +33,30 @@ module DurableWorkflow
             body = request.body.read
             result = @server.handle_json(body)
 
-            [200, { "Content-Type" => "application/json" }, [result]]
+            [200, { 'Content-Type' => 'application/json' }, [result]]
           rescue JSON::ParserError => e
-            error_response(-32700, "Parse error: #{e.message}")
-          rescue StandardError => e
-            error_response(-32603, "Internal error")
+            error_response(-32_700, "Parse error: #{e.message}")
+          rescue StandardError
+            error_response(-32_603, 'Internal error')
           end
 
-          def handle_sse(request)
+          def handle_sse(_request)
             # SSE for notifications (optional)
-            [501, { "Content-Type" => "text/plain" }, ["SSE not implemented"]]
+            [501, { 'Content-Type' => 'text/plain' }, ['SSE not implemented']]
           end
 
-          def handle_delete(request)
+          def handle_delete(_request)
             # Session cleanup
-            [200, {}, [""]]
+            [200, {}, ['']]
           end
 
           def error_response(code, message)
-            [400, { "Content-Type" => "application/json" }, [
+            [400, { 'Content-Type' => 'application/json' }, [
               JSON.generate({
-                jsonrpc: "2.0",
-                error: { code: code, message: message },
-                id: nil
-              })
+                              jsonrpc: '2.0',
+                              error: { code: code, message: message },
+                              id: nil
+                            })
             ]]
           end
         end

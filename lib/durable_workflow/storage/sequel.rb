@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require "json"
-require "sequel"
+require 'json'
+require 'sequel'
 
 module DurableWorkflow
   module Storage
@@ -34,7 +34,7 @@ module DurableWorkflow
           updated_at: now
         }
 
-        if @executions.where(id: execution.id).count > 0
+        if @executions.where(id: execution.id).any?
           @executions.where(id: execution.id).update(data)
         else
           @executions.insert(data.merge(id: execution.id, created_at: now))
@@ -121,7 +121,7 @@ module DurableWorkflow
       def delete(execution_id)
         count = @executions.where(id: execution_id).delete
         @entries.where(execution_id:).delete
-        count > 0
+        count.positive?
       end
 
       def execution_ids(workflow_id: nil, limit: 1000)
@@ -132,13 +132,13 @@ module DurableWorkflow
 
       private
 
-        def symbolize(obj)
-          case obj
-          when Hash then obj.transform_keys(&:to_sym).transform_values { symbolize(_1) }
-          when Array then obj.map { symbolize(_1) }
-          else obj
-          end
+      def symbolize(obj)
+        case obj
+        when Hash then obj.transform_keys(&:to_sym).transform_values { symbolize(_1) }
+        when Array then obj.map { symbolize(_1) }
+        else obj
         end
+      end
     end
   end
 end

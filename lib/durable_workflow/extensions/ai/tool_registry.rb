@@ -53,7 +53,7 @@ module DurableWorkflow
             if tool_class.respond_to?(:tool_def) && tool_class.tool_def
               tool_class.tool_def.id
             else
-              tool_class.name&.split("::")&.last&.gsub(/([A-Z])/, '_\1')&.downcase&.sub(/^_/, "") || "unknown"
+              tool_class.name&.split('::')&.last&.gsub(/([A-Z])/, '_\1')&.downcase&.sub(/^_/, '') || 'unknown'
             end
           end
         end

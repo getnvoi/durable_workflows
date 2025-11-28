@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "json"
+require 'json'
 
 module DurableWorkflow
   module Runners
@@ -34,7 +34,8 @@ module DurableWorkflow
       def initialize(workflow, store: nil)
         @workflow = workflow
         @store = store || DurableWorkflow.config&.store
-        raise ConfigError, "No store configured" unless @store
+        raise ConfigError, 'No store configured' unless @store
+
         @subscribers = []
       end
 
@@ -46,18 +47,18 @@ module DurableWorkflow
 
       # Run with event streaming
       def run(input: {}, execution_id: nil)
-        emit("workflow.started", workflow_id: workflow.id, input:)
+        emit('workflow.started', workflow_id: workflow.id, input:)
 
         engine = StreamingEngine.new(workflow, store:, emitter: method(:emit))
         result = engine.run(input:, execution_id:)
 
         case result.status
         when :completed
-          emit("workflow.completed", execution_id: result.execution_id, output: result.output)
+          emit('workflow.completed', execution_id: result.execution_id, output: result.output)
         when :halted
-          emit("workflow.halted", execution_id: result.execution_id, halt: result.halt&.data, prompt: result.halt&.prompt)
+          emit('workflow.halted', execution_id: result.execution_id, halt: result.halt&.data, prompt: result.halt&.prompt)
         when :failed
-          emit("workflow.failed", execution_id: result.execution_id, error: result.error)
+          emit('workflow.failed', execution_id: result.execution_id, error: result.error)
         end
 
         result
@@ -65,18 +66,18 @@ module DurableWorkflow
 
       # Resume with event streaming
       def resume(execution_id, response: nil, approved: nil)
-        emit("workflow.resumed", execution_id:)
+        emit('workflow.resumed', execution_id:)
 
         engine = StreamingEngine.new(workflow, store:, emitter: method(:emit))
         result = engine.resume(execution_id, response:, approved:)
 
         case result.status
         when :completed
-          emit("workflow.completed", execution_id: result.execution_id, output: result.output)
+          emit('workflow.completed', execution_id: result.execution_id, output: result.output)
         when :halted
-          emit("workflow.halted", execution_id: result.execution_id, halt: result.halt&.data, prompt: result.halt&.prompt)
+          emit('workflow.halted', execution_id: result.execution_id, halt: result.halt&.data, prompt: result.halt&.prompt)
         when :failed
-          emit("workflow.failed", execution_id: result.execution_id, error: result.error)
+          emit('workflow.failed', execution_id: result.execution_id, error: result.error)
         end
 
         result
@@ -88,6 +89,7 @@ module DurableWorkflow
 
         subscribers.each do |sub|
           next if sub[:events] && !sub[:events].include?(type)
+
           sub[:handler].call(event)
         end
       end
@@ -102,23 +104,23 @@ module DurableWorkflow
 
       private
 
-        def execute_step(state, step)
-          @emitter.call("step.started", step_id: step.id, step_type: step.type)
+      def execute_step(state, step)
+        @emitter.call('step.started', step_id: step.id, step_type: step.type)
 
-          outcome = super
+        outcome = super
 
-          event = case outcome.result
-          when Core::HaltResult then "step.halted"
-          else "step.completed"
-          end
+        event = case outcome.result
+                when Core::HaltResult then 'step.halted'
+                else 'step.completed'
+                end
 
-          @emitter.call(event, step_id: step.id, output: outcome.result.output)
+        @emitter.call(event, step_id: step.id, output: outcome.result.output)
 
-          outcome
-        rescue => e
-          @emitter.call("step.failed", step_id: step.id, error: e.message)
-          raise
-        end
+        outcome
+      rescue StandardError => e
+        @emitter.call('step.failed', step_id: step.id, error: e.message)
+        raise
+      end
     end
   end
 end

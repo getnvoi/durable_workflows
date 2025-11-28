@@ -87,30 +87,17 @@ module DurableWorkflow
       attribute? :timeout, Types::Strict::Integer.optional
     end
 
-    # Registry mapping type -> config class
-    # Extensions add to this registry
-    CONFIG_REGISTRY = {
-      "start" => StartConfig,
-      "end" => EndConfig,
-      "call" => CallConfig,
-      "assign" => AssignConfig,
-      "router" => RouterConfig,
-      "loop" => LoopConfig,
-      "halt" => HaltConfig,
-      "approval" => ApprovalConfig,
-      "transform" => TransformConfig,
-      "parallel" => ParallelConfig,
-      "workflow" => WorkflowConfig
-    }
-
-    # Allow extensions to register config classes
-    def self.register_config(type, klass)
-      CONFIG_REGISTRY[type.to_s] = klass
-    end
-
-    # Check if a config type is registered
-    def self.config_registered?(type)
-      CONFIG_REGISTRY.key?(type.to_s)
-    end
+    # Register core config types
+    Core.register_config('start', StartConfig)
+    Core.register_config('end', EndConfig)
+    Core.register_config('call', CallConfig)
+    Core.register_config('assign', AssignConfig)
+    Core.register_config('router', RouterConfig)
+    Core.register_config('loop', LoopConfig)
+    Core.register_config('halt', HaltConfig)
+    Core.register_config('approval', ApprovalConfig)
+    Core.register_config('transform', TransformConfig)
+    Core.register_config('parallel', ParallelConfig)
+    Core.register_config('workflow', WorkflowConfig)
   end
 end

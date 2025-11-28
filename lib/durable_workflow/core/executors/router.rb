@@ -4,7 +4,7 @@ module DurableWorkflow
   module Core
     module Executors
       class Router < Base
-        Registry.register("router", self)
+        Registry.register('router', self)
 
         def call(state)
           routes = config.routes

@@ -5,14 +5,14 @@ require "test_helper"
 class ConfigRegistryTest < Minitest::Test
   def teardown
     # Remove test config if added
-    DurableWorkflow::Core::CONFIG_REGISTRY.delete("test_step")
+    DurableWorkflow::Core.config_registry.delete("test_step")
   end
 
   def test_register_config_adds_to_registry
     custom_config = Class.new(DurableWorkflow::Core::StepConfig)
     DurableWorkflow::Core.register_config("test_step", custom_config)
 
-    assert_equal custom_config, DurableWorkflow::Core::CONFIG_REGISTRY["test_step"]
+    assert_equal custom_config, DurableWorkflow::Core.config_registry["test_step"]
   end
 
   def test_config_registered_returns_true_for_registered

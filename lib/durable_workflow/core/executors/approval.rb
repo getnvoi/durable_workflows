@@ -4,7 +4,7 @@ module DurableWorkflow
   module Core
     module Executors
       class Approval < Base
-        Registry.register("approval", self)
+        Registry.register('approval', self)
 
         def call(state)
           # Check if timed out (when resuming)
@@ -12,11 +12,10 @@ module DurableWorkflow
           if requested_at_str && config.timeout
             requested_at = Time.parse(requested_at_str)
             if Time.now - requested_at > config.timeout
-              if config.on_timeout
-                return continue(state, next_step: config.on_timeout)
-              else
-                raise ExecutionError, "Approval timeout"
-              end
+              return continue(state, next_step: config.on_timeout) if config.on_timeout
+
+              raise ExecutionError, 'Approval timeout'
+
             end
           end
 
@@ -29,23 +28,22 @@ module DurableWorkflow
             elsif config.on_reject
               return continue(state, next_step: config.on_reject)
             else
-              raise ExecutionError, "Rejected"
+              raise ExecutionError, 'Rejected'
             end
           end
 
           # Request approval
           halt(state,
-            data: {
-              type: :approval,
-              prompt: resolve(state, config.prompt),
-              context: resolve(state, config.context),
-              approvers: config.approvers,
-              timeout: config.timeout,
-              requested_at: Time.now.iso8601
-            },
-            resume_step: step.id,
-            prompt: resolve(state, config.prompt)
-          )
+               data: {
+                 type: :approval,
+                 prompt: resolve(state, config.prompt),
+                 context: resolve(state, config.context),
+                 approvers: config.approvers,
+                 timeout: config.timeout,
+                 requested_at: Time.now.iso8601
+               },
+               resume_step: step.id,
+               prompt: resolve(state, config.prompt))
         end
       end
     end

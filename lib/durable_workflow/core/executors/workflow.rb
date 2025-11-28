@@ -4,7 +4,7 @@ module DurableWorkflow
   module Core
     module Executors
       class SubWorkflow < Base
-        Registry.register("workflow", self)
+        Registry.register('workflow', self)
 
         def call(state)
           child_wf = DurableWorkflow.registry[config.workflow_id]

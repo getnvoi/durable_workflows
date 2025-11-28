@@ -8,7 +8,7 @@ module DurableWorkflow
       attribute :execution_id, Types::Strict::String
       attribute :workflow_id, Types::Strict::String
       attribute :input, Types::Hash.default({}.freeze)
-      attribute :ctx, Types::Hash.default({}.freeze)  # User workflow variables only
+      attribute :ctx, Types::Hash.default({}.freeze) # User workflow variables only
       attribute? :current_step, Types::Strict::String.optional
       attribute :history, Types::Strict::Array.default([].freeze)
 
@@ -37,12 +37,12 @@ module DurableWorkflow
       attribute :workflow_id, Types::Strict::String
       attribute :status, ExecutionStatus
       attribute :input, Types::Hash.default({}.freeze)
-      attribute :ctx, Types::Hash.default({}.freeze)  # User workflow variables only
+      attribute :ctx, Types::Hash.default({}.freeze) # User workflow variables only
       attribute? :current_step, Types::Strict::String.optional
-      attribute? :result, Types::Any                   # Final output when completed
-      attribute? :recover_to, Types::Strict::String.optional  # Step to resume from
-      attribute? :halt_data, Types::Hash.optional      # Data from HaltResult
-      attribute? :error, Types::Strict::String.optional  # Error message when failed
+      attribute? :result, Types::Any # Final output when completed
+      attribute? :recover_to, Types::Strict::String.optional # Step to resume from
+      attribute? :halt_data, Types::Hash.optional # Data from HaltResult
+      attribute? :error, Types::Strict::String.optional # Error message when failed
       attribute? :created_at, Types::Any
       attribute? :updated_at, Types::Any
 

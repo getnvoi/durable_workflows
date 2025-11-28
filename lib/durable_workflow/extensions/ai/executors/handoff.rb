@@ -7,7 +7,7 @@ module DurableWorkflow
         class Handoff < Core::Executors::Base
           def call(state)
             target_agent = config.to || state.ctx[:_handoff_to]
-            raise ExecutionError, "No handoff target specified" unless target_agent
+            raise ExecutionError, 'No handoff target specified' unless target_agent
 
             workflow = DurableWorkflow.registry[state.workflow_id]
             agents = Extension.agents(workflow)

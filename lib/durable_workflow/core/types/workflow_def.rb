@@ -4,7 +4,7 @@ module DurableWorkflow
   module Core
     class InputDef < BaseStruct
       attribute :name, Types::Strict::String
-      attribute? :type, Types::Strict::String.optional.default("string")
+      attribute? :type, Types::Strict::String.optional.default('string')
       attribute? :required, Types::Strict::Bool.default(true)
       attribute? :default, Types::Any
       attribute? :description, Types::Strict::String.optional
@@ -13,7 +13,7 @@ module DurableWorkflow
     class WorkflowDef < BaseStruct
       attribute :id, Types::Strict::String
       attribute :name, Types::Strict::String
-      attribute? :version, Types::Strict::String.optional.default("1.0")
+      attribute? :version, Types::Strict::String.optional.default('1.0')
       attribute? :description, Types::Strict::String.optional
       attribute? :timeout, Types::Strict::Integer.optional
       attribute :inputs, Types::Strict::Array.of(InputDef).default([].freeze)

@@ -8,7 +8,8 @@ module DurableWorkflow
       def initialize(workflow, store: nil, adapter: nil)
         @workflow = workflow
         @store = store || DurableWorkflow.config&.store
-        raise ConfigError, "No store configured" unless @store
+        raise ConfigError, 'No store configured' unless @store
+
         @adapter = adapter || Adapters::Inline.new(store: @store)
       end
 
@@ -81,19 +82,19 @@ module DurableWorkflow
 
       private
 
-        def serialize_workflow
-          { id: workflow.id, name: workflow.name, version: workflow.version }
-        end
+      def serialize_workflow
+        { id: workflow.id, name: workflow.name, version: workflow.version }
+      end
 
-        def build_result(execution)
-          Core::ExecutionResult.new(
-            status: execution.status,
-            execution_id: execution.id,
-            output: execution.result,
-            halt: execution.status == :halted ? Core::HaltResult.new(data: execution.halt_data || {}) : nil,
-            error: execution.error
-          )
-        end
+      def build_result(execution)
+        Core::ExecutionResult.new(
+          status: execution.status,
+          execution_id: execution.id,
+          output: execution.result,
+          halt: execution.status == :halted ? Core::HaltResult.new(data: execution.halt_data || {}) : nil,
+          error: execution.error
+        )
+      end
     end
   end
 end

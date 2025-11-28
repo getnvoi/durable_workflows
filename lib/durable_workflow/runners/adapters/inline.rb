@@ -24,7 +24,7 @@ module DurableWorkflow
           raise ExecutionError, "Workflow not found: #{workflow_id}" unless workflow
 
           store = @store || DurableWorkflow.config&.store
-          raise ConfigError, "No store configured" unless store
+          raise ConfigError, 'No store configured' unless store
 
           engine = Core::Engine.new(workflow, store:)
 

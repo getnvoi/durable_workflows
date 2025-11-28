@@ -24,7 +24,7 @@ module DurableWorkflow
 
           # Run as stdio transport (for Claude Desktop)
           def stdio(server_context: {})
-            require "mcp/server/transports/stdio_transport"
+            require 'mcp/server/transports/stdio_transport'
             server = build(server_context: server_context)
             transport = ::MCP::Server::Transports::StdioTransport.new(server)
             transport.open
@@ -61,18 +61,14 @@ module DurableWorkflow
           end
 
           def build_tools
-            mcp_tools = []
-
             # Convert workflow tools to MCP tools
             # for_workflow returns instances, not classes
-            ToolRegistry.for_workflow(workflow).each do |tool_instance|
-              mcp_tools << Adapter.to_mcp_tool(tool_instance)
+            mcp_tools = ToolRegistry.for_workflow(workflow).map do |tool_instance|
+              Adapter.to_mcp_tool(tool_instance)
             end
 
             # Optionally expose workflow itself as a tool
-            if options[:expose_workflow]
-              mcp_tools << build_workflow_tool
-            end
+            mcp_tools << build_workflow_tool if options[:expose_workflow]
 
             mcp_tools
           end
@@ -86,24 +82,22 @@ module DurableWorkflow
               description: workflow.description || "Run #{workflow.name} workflow",
               input_schema: workflow_input_schema
             ) do |server_context:, **params|
-              begin
-                runner = DurableWorkflow::Runners::Sync.new(wf, store: store)
-                result = runner.run(params)
+              runner = DurableWorkflow::Runners::Sync.new(wf, store: store)
+              result = runner.run(params)
 
-                ::MCP::Tool::Response.new([{
-                  type: "text",
-                  text: JSON.pretty_generate({
-                    status: result.status,
-                    output: result.output
-                  })
-                }])
-              rescue StandardError => e
-                $stderr.puts "Workflow error: #{e.message}\n#{e.backtrace.first(5).join("\n")}"
-                ::MCP::Tool::Response.new([{
-                  type: "text",
-                  text: "Error: #{e.message}"
-                }], is_error: true)
-              end
+              ::MCP::Tool::Response.new([{
+                                          type: 'text',
+                                          text: JSON.pretty_generate({
+                                                                       status: result.status,
+                                                                       output: result.output
+                                                                     })
+                                        }])
+            rescue StandardError => e
+              warn "Workflow error: #{e.message}\n#{e.backtrace.first(5).join("\n")}"
+              ::MCP::Tool::Response.new([{
+                                          type: 'text',
+                                          text: "Error: #{e.message}"
+                                        }], is_error: true)
             end
           end
 

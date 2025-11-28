@@ -11,7 +11,7 @@ module DurableWorkflow
           require 'json_schemer'
         rescue LoadError
           # If json_schemer not available, skip runtime validation
-          DurableWorkflow.log(:debug, "json_schemer not available, skipping runtime schema validation")
+          DurableWorkflow.log(:debug, 'json_schemer not available, skipping runtime schema validation')
           return true
         end
 

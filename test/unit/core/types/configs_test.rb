@@ -103,11 +103,11 @@ class TypesConfigsTest < Minitest::Test
   end
 
   def test_config_registry_contains_all_core_types
-    registry = DurableWorkflow::Core::CONFIG_REGISTRY
+    registry = DurableWorkflow::Core.config_registry
     expected = %w[start end call assign router loop halt approval transform parallel workflow]
 
     expected.each do |type|
-      assert registry.key?(type), "CONFIG_REGISTRY missing '#{type}'"
+      assert registry.key?(type), "config_registry missing '#{type}'"
     end
   end
 
@@ -115,8 +115,8 @@ class TypesConfigsTest < Minitest::Test
     custom_class = Class.new(DurableWorkflow::Core::StepConfig)
     DurableWorkflow::Core.register_config("custom_test", custom_class)
 
-    assert_equal custom_class, DurableWorkflow::Core::CONFIG_REGISTRY["custom_test"]
+    assert_equal custom_class, DurableWorkflow::Core.config_registry["custom_test"]
   ensure
-    DurableWorkflow::Core::CONFIG_REGISTRY.delete("custom_test")
+    DurableWorkflow::Core.config_registry.delete("custom_test")
   end
 end

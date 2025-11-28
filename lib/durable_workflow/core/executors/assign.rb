@@ -4,7 +4,7 @@ module DurableWorkflow
   module Core
     module Executors
       class Assign < Base
-        Registry.register("assign", self)
+        Registry.register('assign', self)
 
         def call(state)
           state = config.set.reduce(state) do |s, (k, v)|

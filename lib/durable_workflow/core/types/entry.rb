@@ -6,7 +6,7 @@ module DurableWorkflow
       attribute :id, Types::Strict::String
       attribute :execution_id, Types::Strict::String
       attribute :step_id, Types::Strict::String
-      attribute :step_type, Types::StepType  # Just a string
+      attribute :step_type, Types::StepType # Just a string
       attribute :action, Types::EntryAction
       attribute? :duration_ms, Types::Strict::Integer.optional
       attribute? :input, Types::Any

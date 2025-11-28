@@ -7,7 +7,7 @@ module DurableWorkflow
         attr_accessor :default_model, :api_keys
 
         def initialize
-          @default_model = "gpt-4o-mini"
+          @default_model = 'gpt-4o-mini'
           @api_keys = {}
         end
       end

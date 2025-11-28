@@ -8,7 +8,7 @@ module DurableWorkflow
       def initialize(workflow, store: nil)
         @workflow = workflow
         @store = store || DurableWorkflow.config&.store
-        raise ConfigError, "No store configured" unless @store
+        raise ConfigError, 'No store configured' unless @store
       end
 
       # Run workflow, block until complete/halted

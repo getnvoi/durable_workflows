@@ -24,17 +24,17 @@ module DurableWorkflow
               end
             end
 
-            def execute_tool(tool, params, server_context)
+            def execute_tool(tool, params, _server_context)
               result = tool.call(**params.transform_keys(&:to_sym))
               formatted = format_result(result)
 
               ::MCP::Tool::Response.new([
-                { type: "text", text: formatted }
-              ])
+                                          { type: 'text', text: formatted }
+                                        ])
             rescue StandardError => e
               ::MCP::Tool::Response.new([
-                { type: "text", text: "Error: #{e.message}" }
-              ], is_error: true)
+                                          { type: 'text', text: "Error: #{e.message}" }
+                                        ], is_error: true)
             end
 
             private
@@ -45,12 +45,13 @@ module DurableWorkflow
               elsif tool.respond_to?(:name)
                 tool.name
               else
-                tool.class.name&.split("::")&.last&.gsub(/([A-Z])/, '_\1')&.downcase&.sub(/^_/, "") || "unknown"
+                tool.class.name&.split('::')&.last&.gsub(/([A-Z])/, '_\1')&.downcase&.sub(/^_/, '') || 'unknown'
               end
             end
 
             def normalize_schema(schema)
               return { properties: {}, required: [] } if schema.nil? || schema.empty?
+
               {
                 properties: Utils.fetch(schema, :properties, {}),
                 required: Utils.fetch(schema, :required, [])
