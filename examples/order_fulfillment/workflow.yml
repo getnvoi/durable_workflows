@@ -1,0 +1,188 @@
+id: order_fulfillment
+name: Order Fulfillment
+version: "1.0"
+description: E-commerce order processing pipeline
+
+inputs:
+  order_id:
+    type: string
+    required: true
+    description: Unique order identifier
+  customer:
+    type: object
+    required: true
+    description: Customer information
+  items:
+    type: array
+    required: true
+    description: Order line items
+  payment:
+    type: object
+    required: true
+    description: Payment information
+  options:
+    type: object
+    required: false
+    description: Order options
+
+steps:
+  - id: start
+    type: start
+    next: validate
+
+  - id: validate
+    type: call
+    service: OrderService
+    method: validate_order
+    input:
+      order_id: "$input.order_id"
+      customer: "$input.customer"
+      items: "$input.items"
+    output: validation
+    on_error: failed
+    next: check_validation
+
+  - id: check_validation
+    type: router
+    routes:
+      - when:
+          field: validation.valid
+          op: eq
+          value: true
+        then: check_inventory
+    default: failed
+
+  - id: check_inventory
+    type: call
+    service: InventoryService
+    method: check_availability
+    input:
+      items: "$input.items"
+    output: inventory
+    next: inventory_decision
+
+  - id: inventory_decision
+    type: router
+    routes:
+      - when:
+          field: inventory.all_available
+          op: eq
+          value: true
+        then: calculate_totals
+    default: out_of_stock
+
+  - id: out_of_stock
+    type: assign
+    set:
+      status: out_of_stock
+      error: "Items not available"
+      totals: null
+      payment_result: null
+      shipment: null
+    next: end
+
+  - id: calculate_totals
+    type: call
+    service: OrderService
+    method: calculate_totals
+    input:
+      items: "$input.items"
+      options: "$input.options"
+    output: totals
+    next: check_approval
+
+  - id: check_approval
+    type: router
+    routes:
+      - when:
+          field: totals.total
+          op: gt
+          value: 1000
+        then: require_approval
+    default: process_payment
+
+  - id: require_approval
+    type: approval
+    prompt: "High-value order requires approval"
+    context:
+      order_id: "$input.order_id"
+      total: "$totals.total"
+    on_reject: rejected
+    next: process_payment
+
+  - id: rejected
+    type: assign
+    set:
+      status: rejected
+      error: "Order rejected by manager"
+      payment_result: null
+      shipment: null
+    next: end
+
+  - id: process_payment
+    type: call
+    service: PaymentService
+    method: charge
+    input:
+      payment: "$input.payment"
+      amount: "$totals.total"
+    output: payment_result
+    on_error: payment_failed
+    next: reserve_inventory
+
+  - id: payment_failed
+    type: assign
+    set:
+      status: payment_failed
+      error: "Payment processing failed"
+      payment_result: null
+      shipment: null
+    next: end
+
+  - id: reserve_inventory
+    type: call
+    service: InventoryService
+    method: reserve
+    input:
+      items: "$input.items"
+      order_id: "$input.order_id"
+    output: reservation
+    next: create_shipment
+
+  - id: create_shipment
+    type: call
+    service: ShippingService
+    method: create_shipment
+    input:
+      order_id: "$input.order_id"
+      customer: "$input.customer"
+      items: "$input.items"
+    output: shipment
+    next: completed
+
+  - id: completed
+    type: assign
+    set:
+      status: completed
+      error: null
+    next: end
+
+  - id: failed
+    type: assign
+    set:
+      status: failed
+      error: "Order validation failed"
+      totals: null
+      payment_result: null
+      shipment: null
+    next: end
+
+  - id: end
+    type: end
+    result:
+      order_id: "$input.order_id"
+      status: "$status"
+      totals: "$totals"
+      payment_id: "$payment_result.payment_id"
+      tracking_number: "$shipment.tracking_number"
+      error: "$error"

@@ -1,0 +1,286 @@
+id: support_agent
+name: Customer Support Agent
+version: "1.0"
+description: AI-powered customer support with specialized agents
+
+inputs:
+  message:
+    type: string
+    required: true
+    description: Customer's support request
+  customer_id:
+    type: string
+    required: false
+    description: Optional customer identifier
+  context:
+    type: object
+    required: false
+    description: Additional context (order_id, etc.)
+
+# AI Extension Configuration
+agents:
+  - id: triage
+    name: Triage Agent
+    model: gpt-4o-mini
+    instructions: |
+      You are a support triage agent. Analyze the customer's request and determine:
+      1. The category (billing, technical, general)
+      2. The urgency (low, medium, high)
+      3. Key entities mentioned (order IDs, product names, etc.)
+
+      Always be polite and acknowledge the customer's concern.
+      Use the classify_request tool to record your analysis.
+    tools:
+      - classify_request
+
+  - id: billing
+    name: Billing Agent
+    model: gpt-4o
+    instructions: |
+      You are a billing specialist. Help customers with:
+      - Order lookups and status
+      - Refunds and cancellations
+      - Payment issues
+      - Invoice requests
+
+      Always verify the customer's identity before processing sensitive requests.
+      Use available tools to look up information and take actions.
+    tools:
+      - lookup_order
+      - refund_order
+      - create_ticket
+      - escalate
+    handoffs:
+      - agent_id: technical
+        description: Transfer to technical support for product issues
+
+  - id: technical
+    name: Technical Support Agent
+    model: gpt-4o
+    instructions: |
+      You are a technical support specialist. Help customers with:
+      - Product setup and configuration
+      - Troubleshooting issues
+      - Password resets
+      - Account access problems
+
+      Be patient and provide step-by-step guidance.
+    tools:
+      - reset_password
+      - check_status
+      - create_ticket
+      - escalate
+    handoffs:
+      - agent_id: billing
+        description: Transfer to billing for payment issues
+
+tools:
+  - id: classify_request
+    description: Classify the customer's support request
+    parameters:
+      - name: category
+        type: string
+        required: true
+        description: "Category: billing, technical, or general"
+      - name: urgency
+        type: string
+        required: true
+        description: "Urgency: low, medium, or high"
+      - name: summary
+        type: string
+        required: true
+        description: Brief summary of the request
+    service: SupportServices
+    method: classify_request
+
+  - id: lookup_order
+    description: Look up an order by ID or customer email
+    parameters:
+      - name: order_id
+        type: string
+        description: Order ID to look up
+      - name: email
+        type: string
+        description: Customer email to find orders
+    service: SupportServices
+    method: lookup_order
+
+  - id: refund_order
+    description: Process a refund for an order
+    parameters:
+      - name: order_id
+        type: string
+        required: true
+        description: Order ID to refund
+      - name: reason
+        type: string
+        required: true
+        description: Reason for refund
+      - name: amount
+        type: number
+        description: Partial refund amount (omit for full refund)
+    service: SupportServices
+    method: refund_order
+
+  - id: create_ticket
+    description: Create a support ticket for follow-up
+    parameters:
+      - name: subject
+        type: string
+        required: true
+        description: Ticket subject
+      - name: description
+        type: string
+        required: true
+        description: Detailed description
+      - name: priority
+        type: string
+        description: "Priority: low, medium, high"
+    service: SupportServices
+    method: create_ticket
+
+  - id: check_status
+    description: Check the status of a support ticket
+    parameters:
+      - name: ticket_id
+        type: string
+        required: true
+        description: Ticket ID to check
+    service: SupportServices
+    method: check_status
+
+  - id: reset_password
+    description: Send password reset email to customer
+    parameters:
+      - name: email
+        type: string
+        required: true
+        description: Customer's email address
+    service: SupportServices
+    method: reset_password
+
+  - id: escalate
+    description: Escalate to a human support agent
+    parameters:
+      - name: reason
+        type: string
+        required: true
+        description: Reason for escalation
+      - name: urgency
+        type: string
+        required: true
+        description: "Urgency level: medium or high"
+    service: SupportServices
+    method: escalate
+
+# Workflow Steps
+steps:
+  - id: start
+    type: start
+    next: moderate_input
+
+  - id: moderate_input
+    type: guardrail
+    content: "$input.message"
+    checks:
+      - type: moderation
+      - type: prompt_injection
+    on_fail: rejected
+    next: triage
+
+  - id: triage
+    type: agent
+    agent_id: triage
+    prompt: |
+      Customer message: $input.message
+      Customer ID: $input.customer_id
+      Context: $input.context
+
+      Please analyze this request and classify it.
+    output: triage_result
+    next: route_request
+
+  - id: route_request
+    type: router
+    routes:
+      - when:
+          field: triage_result.category
+          op: eq
+          value: "billing"
+        then: billing_agent
+      - when:
+          field: triage_result.category
+          op: eq
+          value: "technical"
+        then: technical_agent
+    default: general_response
+
+  - id: billing_agent
+    type: agent
+    agent_id: billing
+    prompt: |
+      Customer request (classified as billing, urgency: $triage_result.urgency):
+      $input.message
+
+      Customer ID: $input.customer_id
+      Context: $input.context
+
+      Please help resolve this billing issue.
+    output: agent_response
+    next: check_handoff
+
+  - id: technical_agent
+    type: agent
+    agent_id: technical
+    prompt: |
+      Customer request (classified as technical, urgency: $triage_result.urgency):
+      $input.message
+
+      Customer ID: $input.customer_id
+
+      Please help resolve this technical issue.
+    output: agent_response
+    next: check_handoff
+
+  - id: general_response
+    type: agent
+    agent_id: triage
+    prompt: |
+      The customer's request doesn't fit billing or technical categories.
+      Please provide a helpful general response or ask clarifying questions.
+
+      Customer message: $input.message
+    output: agent_response
+    next: end
+
+  - id: check_handoff
+    type: router
+    routes:
+      - when:
+          field: _handoff_to
+          op: exists
+        then: handle_handoff
+    default: end
+
+  - id: handle_handoff
+    type: handoff
+    target_agent: "$_handoff_to"
+    context:
+      original_message: "$input.message"
+      previous_response: "$agent_response"
+      triage: "$triage_result"
+    output: agent_response
+    next: end
+
+  - id: rejected
+    type: assign
+    set:
+      agent_response: "I apologize, but I cannot process this request. Please contact support directly."
+      triage_result: null
+    next: end
+
+  - id: end
+    type: end
+    result:
+      response: "$agent_response"
+      triage: "$triage_result"

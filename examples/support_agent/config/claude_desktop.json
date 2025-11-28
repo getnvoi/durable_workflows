@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "support_agent": {
+      "command": "ruby",
+      "args": ["examples/support_agent/mcp_server.rb"],
+      "cwd": "/path/to/durable_workflow",
+      "env": {
+        "OPENAI_API_KEY": "your-key-here"
+      }
+    }
+  }
+}
