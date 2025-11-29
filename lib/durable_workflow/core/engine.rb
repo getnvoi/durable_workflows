@@ -122,6 +122,10 @@ module DurableWorkflow
           return StepOutcome.new(state: error_state, result: ContinueResult.new(next_step: step.on_error))
         end
 
+        # Persist failed status before re-raising
+        result = ExecutionResult.new(status: :failed, execution_id: state.execution_id, error: "#{e.class}: #{e.message}")
+        save_execution(state, result)
+
         raise
       end
 

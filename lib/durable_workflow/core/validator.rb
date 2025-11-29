@@ -131,14 +131,36 @@ module DurableWorkflow
         available = available.dup
         add_step_output(step, available)
 
+        # Validate loop body separately (has its own scope)
+        validate_loop_body(step, available) if step.type == 'loop'
+
         # Recurse to all possible next steps
         next_steps_for(step).each do |next_id|
           walk_steps(next_id, available, visited)
         end
       end
 
+      # Loop body steps have access to the iteration variable ($recipient, $item, etc.)
+      # This is a separate scope - the `as:` variable only exists inside the loop.
+      def validate_loop_body(loop_step, available)
+        cfg = loop_step.config
+        return unless cfg.respond_to?(:do) && cfg.do&.any?
+
+        # Build loop scope: available vars + iteration variable + index variable
+        loop_scope = available.dup
+        loop_scope << cfg.as.to_sym if cfg.respond_to?(:as) && cfg.as
+        loop_scope << cfg.index_as.to_sym if cfg.respond_to?(:index_as) && cfg.index_as
+
+        # Validate each inner step with the loop scope
+        cfg.do.each do |inner_step|
+          check_variable_references(inner_step, loop_scope)
+        end
+      end
+
       def check_variable_references(step, available)
-        refs = extract_refs(step.config)
+        # For loop steps, exclude the `do:` block - it's validated separately with loop scope
+        exclude_keys = step.type == 'loop' ? [:do] : []
+        refs = extract_refs(step.config, [], exclude_keys)
 
         refs.each do |ref|
           root = ref.split('.').first.to_sym
@@ -185,16 +207,16 @@ module DurableWorkflow
         steps.compact.uniq
       end
 
-      def extract_refs(obj, refs = [])
+      def extract_refs(obj, refs = [], exclude_keys = [])
         case obj
         when String
           obj.scan(/\$([a-zA-Z_][a-zA-Z0-9_.]*)/).flatten.each { refs << _1 }
         when Hash
-          obj.each_value { extract_refs(_1, refs) }
+          obj.each { |k, v| extract_refs(v, refs, exclude_keys) unless exclude_keys.include?(k.to_sym) }
         when Array
-          obj.each { extract_refs(_1, refs) }
+          obj.each { extract_refs(_1, refs, exclude_keys) }
         when BaseStruct
-          obj.to_h.each_value { extract_refs(_1, refs) }
+          obj.to_h.each { |k, v| extract_refs(v, refs, exclude_keys) unless exclude_keys.include?(k.to_sym) }
         end
         refs
       end

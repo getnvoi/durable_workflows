@@ -182,4 +182,124 @@ class ValidatorTest < Minitest::Test
     # Empty workflow should be valid (no steps to validate)
     assert DurableWorkflow::Core::Validator.validate!(workflow)
   end
+
+  # Test: Loop Body Variable Scope
+
+  def test_loop_as_variable_is_available_inside_loop_body
+    # The `as: recipient` declares $recipient inside the loop's do: block
+    inner_call = DurableWorkflow::Core::StepDef.new(
+      id: "create_invite",
+      type: "call",
+      config: DurableWorkflow::Core::CallConfig.new(
+        service: "InviteService",
+        method_name: "create",
+        input: { invitee_id: "$recipient.id" }  # References loop variable
+      )
+    )
+
+    loop_config = DurableWorkflow::Core::LoopConfig.new(
+      over: "$input.recipients",
+      as: :recipient,
+      do: [inner_call],
+      output: :invites
+    )
+
+    workflow = build_workflow(
+      steps: [
+        build_step(id: "start", type: "start", next_step: "loop"),
+        DurableWorkflow::Core::StepDef.new(id: "loop", type: "loop", config: loop_config, next_step: "end"),
+        build_step(id: "end", type: "end")
+      ],
+      inputs: [DurableWorkflow::Core::InputDef.new(name: "recipients", type: "array")]
+    )
+
+    # Should not raise - $recipient is valid inside the loop body
+    assert DurableWorkflow::Core::Validator.validate!(workflow)
+  end
+
+  def test_loop_index_variable_is_available_inside_loop_body
+    # The `index_as: idx` declares $idx inside the loop's do: block
+    inner_assign = DurableWorkflow::Core::StepDef.new(
+      id: "log_index",
+      type: "assign",
+      config: DurableWorkflow::Core::AssignConfig.new(
+        set: { current_index: "$idx" }  # References index variable
+      )
+    )
+
+    loop_config = DurableWorkflow::Core::LoopConfig.new(
+      over: "$input.items",
+      as: :item,
+      index_as: :idx,
+      do: [inner_assign],
+      output: :results
+    )
+
+    workflow = build_workflow(
+      steps: [
+        build_step(id: "start", type: "start", next_step: "loop"),
+        DurableWorkflow::Core::StepDef.new(id: "loop", type: "loop", config: loop_config, next_step: "end"),
+        build_step(id: "end", type: "end")
+      ],
+      inputs: [DurableWorkflow::Core::InputDef.new(name: "items", type: "array")]
+    )
+
+    # Should not raise - $idx is valid inside the loop body
+    assert DurableWorkflow::Core::Validator.validate!(workflow)
+  end
+
+  def test_loop_variable_not_available_outside_loop
+    # $recipient should NOT be available after the loop
+    loop_config = DurableWorkflow::Core::LoopConfig.new(
+      over: "$input.recipients",
+      as: :recipient,
+      do: [],
+      output: :invites
+    )
+
+    end_config = DurableWorkflow::Core::EndConfig.new(
+      result: { last_recipient: "$recipient.id" }  # Invalid - $recipient out of scope
+    )
+
+    workflow = build_workflow(
+      steps: [
+        build_step(id: "start", type: "start", next_step: "loop"),
+        DurableWorkflow::Core::StepDef.new(id: "loop", type: "loop", config: loop_config, next_step: "end"),
+        DurableWorkflow::Core::StepDef.new(id: "end", type: "end", config: end_config)
+      ],
+      inputs: [DurableWorkflow::Core::InputDef.new(name: "recipients", type: "array")]
+    )
+
+    error = assert_raises(DurableWorkflow::ValidationError) do
+      DurableWorkflow::Core::Validator.validate!(workflow)
+    end
+
+    assert_match(/references '\$recipient.id' but 'recipient' not set/, error.message)
+  end
+
+  def test_loop_output_is_available_after_loop
+    # $invites (the loop output) should be available after the loop
+    loop_config = DurableWorkflow::Core::LoopConfig.new(
+      over: "$input.recipients",
+      as: :recipient,
+      do: [],
+      output: :invites
+    )
+
+    end_config = DurableWorkflow::Core::EndConfig.new(
+      result: { all_invites: "$invites" }  # Valid - $invites set by loop output
+    )
+
+    workflow = build_workflow(
+      steps: [
+        build_step(id: "start", type: "start", next_step: "loop"),
+        DurableWorkflow::Core::StepDef.new(id: "loop", type: "loop", config: loop_config, next_step: "end"),
+        DurableWorkflow::Core::StepDef.new(id: "end", type: "end", config: end_config)
+      ],
+      inputs: [DurableWorkflow::Core::InputDef.new(name: "recipients", type: "array")]
+    )
+
+    # Should not raise - $invites is set by the loop's output
+    assert DurableWorkflow::Core::Validator.validate!(workflow)
+  end
 end
